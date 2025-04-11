@@ -167,39 +167,39 @@ FROM productos p
 JOIN stock s ON p.id_serial = s.id_producto
 WHERE s.cantidad < 5;
 
--- 2️⃣ Ventas totales de un mes específico (Ej: marzo 2025)
+-- Ventas totales de un mes específico 
 SELECT SUM(dv.cantidad * p.precio) AS total_ventas
 FROM ventas v
-JOIN detalle_ventas dv ON v.id_venta = dv.id_venta
-JOIN productos p ON dv.id_producto = p.id_producto
-WHERE DATE_PART('month', v.fecha) = 3 AND DATE_PART('year', v.fecha) = 2025;
+JOIN  ventas_detalle dv ON v.id_serial = dv.venta_id
+JOIN productos p ON dv.producto_id = p.id_serial
+WHERE DATE_PART('month', v.fecha) = 10 AND DATE_PART('year', v.fecha) = 2024;
 
--- 3️⃣ Cliente con más compras realizadas
-SELECT c.id_cliente, c.nombre_cliente, COUNT(v.id_venta) AS total_compras
+--  Cliente con más compras realizadas
+SELECT c.id_serial, c.nombre, COUNT(v.id_serial) AS total_compras
 FROM clientes c
-JOIN ventas v ON c.id_cliente = v.id_cliente
-GROUP BY c.id_cliente
+JOIN ventas v ON c.id_serial = v.cliente_id
+GROUP BY c.id_serial
 ORDER BY total_compras DESC
 LIMIT 1;
 
--- 4️⃣ Top 5 productos más vendidos
-SELECT p.id_producto, p.nombre_producto, SUM(dv.cantidad) AS total_vendido
+--  Top 5 productos más vendidos
+SELECT p.id_serial, p.nombre, SUM(dv.cantidad) AS total_vendido
 FROM productos p
-JOIN detalle_ventas dv ON p.id_producto = dv.id_producto
-GROUP BY p.id_producto
+JOIN ventas_detalle dv ON p.id_serial = dv.producto_id
+GROUP BY p.id_serial
 ORDER BY total_vendido DESC
 LIMIT 5;
 
--- 5️⃣ Ventas realizadas en un rango de fechas
-SELECT *
-FROM ventas
-WHERE fecha BETWEEN '2025-03-01' AND '2025-03-03';
+--  Ventas realizadas en un rango de fechas
+SELECT v.id_serial as venta , v.cliente_id as id_cliente , v.fecha
+FROM ventas v
+WHERE fecha BETWEEN '2024-10-01' AND '2024-10-29';
 
--- 6️⃣ Clientes que no han comprado en los últimos 6 meses
+--  Clientes que no han comprado en los últimos 6 meses
 SELECT *
 FROM clientes
-WHERE id_cliente NOT IN (
-    SELECT DISTINCT id_cliente
+WHERE id_serial NOT IN (
+    SELECT DISTINCT cliente_id
     FROM ventas
     WHERE fecha >= CURRENT_DATE - INTERVAL '6 months'
 );
@@ -208,29 +208,6 @@ WHERE id_cliente NOT IN (
  
 
 ```
-SELECT DATE(v.fecha) AS fecha, COUNT(*) AS total_ventas
-FROM ventas v
-GROUP BY DATE(v.fecha)
-ORDER BY fecha;
-
-SELECT cat.nombre AS categoria, SUM(vd.cantidad) AS total_vendidos
-FROM ventas_detalle vd
-JOIN productos p ON vd.producto_id = p.id_serial
-JOIN categorias cat ON p.categoria_id = cat.id_serial
-GROUP BY cat.nombre
-ORDER BY total_vendidos DESC;
-
-SELECT p.nombre, s.cantidad
-FROM stock s
-JOIN productos p ON s.id_producto = p.id_serial
-WHERE s.cantidad < 5
-ORDER BY s.cantidad ASC;
-
-SELECT c.nombre, COUNT(v.id_serial) AS cantidad_compras
-FROM clientes c
-JOIN ventas v ON c.id_serial = v.cliente_id
-GROUP BY c.nombre
-ORDER BY cantidad_compras DESC;
 
 
 CREATE OR REPLACE FUNCTION validar_stock_y_insertar_detalle(
