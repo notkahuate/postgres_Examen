@@ -18,7 +18,7 @@ Además, se incorporan procedimientos almacenados que permiten automatizar y con
 
 
 
-![Captura desde 2025-04-11 08-42-58](/home/camper/Imágenes/Capturas de pantalla/Captura desde 2025-04-11 08-42-58.png)
+![alt text](<Captura desde 2025-04-11 08-42-58.png>)
 
 
 
