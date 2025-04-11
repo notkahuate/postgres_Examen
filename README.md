@@ -1,5 +1,19 @@
 # # Examen sql 
 
+
+
+-- ==============================
+
+# DESCRIPCION
+
+-- ==============================
+
+El presente proyecto consiste en el diseño e implementación de una base de datos relacional para **TechZone**, una tienda tecnológica dedicada a la venta de productos electrónicos. El sistema ha sido desarrollado bajo los principios de la **normalización (hasta 3FN)** con el fin de garantizar la integridad, eficiencia y escalabilidad de los datos. El modelo contempla todas las entidades clave para la gestión comercial de la tienda 
+
+Además, se incorporan procedimientos almacenados que permiten automatizar y controlar el proceso de venta, garantizando que haya stock suficiente antes de confirmar la transacción. Todo esto se complementa con consultas SQL avanzadas para generar reportes, monitorear ventas, y analizar el comportamiento de los clientes.
+
+
+
 # 0. MODELO ENTIDAD RELACION
 
 
@@ -10,7 +24,7 @@
 
 -- ==============================
 
-# 1. ESTRUCTURA DE LA BASE DE DATOS (db.sql)
+# 1. ESTRUCTURA DE LA BASE DE DATOS
 
 -- ==============================
 
@@ -81,7 +95,7 @@ CREATE TABLE ventas_detalle (
 
 
 -- ==============================
-# 2. INSERCIÓN DE DATOS (insert.sql)
+# 2. INSERCIÓN DE DATOS 
 -- ==============================
 
 ```sql
@@ -154,7 +168,7 @@ INSERT INTO ventas_detalle (venta_id, producto_id, cantidad) VALUES
 
 
 -- ==============================
-# 3. CONSULTAS SQL AVANZADAS (queries.sql)
+# 3. CONSULTAS SQL AVANZADAS 
 -- ==============================
 
 
@@ -205,43 +219,72 @@ WHERE id_serial NOT IN (
 );
 ```
 
- 
+ -- ==============================
 
-```
+# 4. PRODECIMIENTO ADECUADO	
+
+-- ==============================
 
 
-CREATE OR REPLACE FUNCTION validar_stock_y_insertar_detalle(
-    p_venta_id INT,
-    p_producto_id INT,
-    p_cantidad INT
-)
-RETURNS TEXT AS $$
+
+```sql
+-- Crea la venta y devuelve el ID generado.
+
+ CREATE OR REPLACE FUNCTION crear_venta(p_id_cliente INT)
+RETURNS INT AS $$
 DECLARE
-    stock_actual INT;
+    v_id_venta INT;
 BEGIN
-    SELECT s.cantidad INTO stock_actual
-    FROM stock s
-    WHERE s.id_producto = p_producto_id;
+    INSERT INTO ventas(cliente_id) VALUES (p_id_cliente)
+    RETURNING id_serial INTO v_id_venta;
+    RETURN v_id_venta;
+END;
+$$ LANGUAGE plpgsql;
 
-    IF stock_actual IS NULL THEN
-        RETURN '❌ No existe stock registrado para este producto.';
-    ELSIF stock_actual < p_cantidad THEN
-        RETURN '❌ Stock insuficiente.';
-    ELSE
-        -- Insertar en ventas_detalle
-        INSERT INTO ventas_detalle (venta_id, producto_id, cantidad)
-        VALUES (p_venta_id, p_producto_id, p_cantidad);
 
-        -- Actualizar el stock
-        UPDATE stock
-        SET cantidad = cantidad - p_cantidad,
-            fecha_actualizacion = CURRENT_DATE
-        WHERE id_producto = p_producto_id;
+-- Valida si hay suficiente stock. Si no, lanza una excepción.
 
-        RETURN '✅ Venta registrada y stock actualizado.';
+ CREATE OR REPLACE PROCEDURE verificar_stock(p_id_producto INT, p_cantidad INT)
+AS $$
+DECLARE
+    v_stock INT;
+BEGIN
+    SELECT cantidad INTO v_stock FROM stock WHERE id_producto = p_id_producto;
+
+    IF v_stock IS NULL THEN
+        RAISE EXCEPTION 'Producto no encontrado en stock.';
+    END IF;
+
+    IF v_stock < p_cantidad THEN
+        RAISE EXCEPTION 'Stock insuficiente para el producto %', p_id_producto;
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+
+-- Agrega un producto al detalle de la venta.
+
+ CREATE OR REPLACE PROCEDURE insertar_detalle_venta(p_id_venta INT, p_id_producto INT, p_cantidad INT)
+AS $$
+BEGIN
+    INSERT INTO ventas_detalle(venta_id, producto_id, cantidad)
+    VALUES (p_id_venta, p_id_producto, p_cantidad);
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Resta del stock la cantidad vendida y actualiza la fecha.
+
+CREATE OR REPLACE PROCEDURE actualizar_stock(p_id_producto INT, p_cantidad INT)
+AS $$
+BEGIN
+    UPDATE stock
+    SET cantidad = cantidad - p_cantidad,
+        fecha_actualizacion = CURRENT_DATE
+    WHERE id_producto = p_id_producto;
+END;
+$$ LANGUAGE plpgsql;
+
 
 ```
 
